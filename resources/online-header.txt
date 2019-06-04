@@ -1,0 +1,36 @@
+    static String online_header[][] = 
+    {
+        { "A",  "2", "R", "1", "ResponseResult" },    ;0 
+        { "A",  "10","M", "1", "UserId" },            ;1
+        { "N",  "7", "M", "1", "ReferenceNumber" },   ;2
+        { "AN", "4", "R", "1", "RebidNumber" },       ;3
+        { "A",  "4", "R", "1", "EndOfGroupInd" },     ;4
+        { "AN", "2", "R", "1", "BlockMsgNo" },        ;5
+        { "A",  "3", "M", "1", "SourceID" },          ;6
+        { "A",  "3", "R", "1", "DestinationID" },     ;7
+        { "A",  "10","R", "1", "RetQueueName" },      ;8
+        { "A",  "10","M", "1", "TerminalID" },        ;9
+        { "AN", "2", "M", "1", "BankNumber" },        ;10
+        { "AN", "3", "M", "1", "BranchNumber" },      ;11
+        { "A",  "10","O", "1", "LocalSupID" },        ;12
+        { "A",  "10","R", "1", "LocalOverrideID" },   ;13
+        { "A",  "10","R", "1", "HostOverrideID" },    ;14
+        { "AN", "4", "M", "1", "TransactionCode" },   ;15
+        { "A",  "1", "M", "1", "ActionCode" },        ;16
+        { "A",  "1", "M", "1", "TransactionMode" },   ;17
+        { "AN", "3", "M", "1", "NoOfRecToRetrieve" }, ;18
+        { "B",  "1", "M", "1", "MoreRecordsInd" },    ;19
+        { "A",  "1", "M", "1", "SearchMethod" },      ;20
+        { "AN", "3", "R", "1", "ResponseCode1" },     ;21
+        { "A",  "20","R", "1", "ResponseDesc1" },     ;22
+        { "AN", "3", "R", "1", "ResponseCode2" },     ;23
+        { "A",  "20","R", "1", "ResponseDesc2" },     ;24
+        { "AN", "3", "R", "1", "ResponseCode3" },     ;25
+        { "A",  "20","R", "1", "ResponseDesc3" },     ;26
+        { "AN", "3", "R", "1", "ResponseCode4" },     ;27
+        { "A",  "20","R", "1", "ResponseDesc4" },     ;28
+        { "AN", "3", "R", "1", "ResponseCode5" },     ;29
+        { "A",  "20","R", "1", "ResponseDesc5" },     ;30
+        { "T3", "14","M", "1", "DateIn" },            ;31
+        { "A",  "7", "O", "1", "Filler" }             ;32
+    };

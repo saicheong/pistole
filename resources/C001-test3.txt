@@ -1,0 +1,11 @@
+    private static final String rplyC2CRelnFormat[][] =
+    {
+        { "A",  "19", "O", "1", "RelnCIFNumber" },
+        { "A",  "70", "O", "1", "RelnPartyName" },
+        { "A",  "15", "O", "1", "RelnPartyIDNo" },
+        { "A",  "2",  "O", "1", "RelnPartyIDType" },
+        { "A",  "3",  "O", "1", "RelnPartyIDCtry" },
+        { "A",  "2",  "O", "1", "RelationshipType" },
+        { "SN", "5.2","O", "1", "PercentShare" },
+        { "A",  "14", "O", "1", "LastMaintainedDate" }
+    };
