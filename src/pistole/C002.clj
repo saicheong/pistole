@@ -24,6 +24,9 @@
 
   "          ******    ")
 
+(defn- ^String fill [^Character c cnt]
+  (apply str (repeat cnt c)))
+
 (defn- ^String left-pad [^String s pad sz]
   (str (apply str (repeat (- sz (count s)) pad))
        s))
@@ -36,6 +39,11 @@
         (if (= c (.charAt s index))
           (recur (unchecked-inc index))
           (.. s (subSequence index len) toString))))))
+
+(defn partition-string [^CharSequence s len]
+  (if (seq s)
+    (lazy-seq (cons (subs s 0 len) (partition-string (subs s len) len)))))
+
 
 (defmulti write-field-1 (fn [spec _] (first spec)))
 (defmulti read-field-1 (fn [spec _] (first spec)))
@@ -91,37 +99,30 @@
   (if (= "Y" (subs s 0 1)) true false))
 
 
+(defmacro date-spec [tag fmt-str]
+  `(let [nil-repr# (fill \0 (count ~fmt-str))]
+     (do (defmethod write-field-1 ~tag
+           [_# ^Date d#]
+           (if d#
+             (.format (SimpleDateFormat. ~fmt-str) d#)
+             nil-repr#))
+         (defmethod read-field-1 ~tag
+           [_# ^String s#]
+           (if (not= nil-repr# s#)
+             (.parse (SimpleDateFormat. ~fmt-str) s#))))))
 
-(def date-formats {:T "yyyyMMddHHmmss"
-                   :T3 "ddMMyyyyHHmmss"})
-(def nil-date-strs {:T "00000000000000"
-                    :T3 "00000000000000"})
+(date-spec :T    "yyyyMMddHHmmss")
+(date-spec :T2    "yyyyDDDHHmmss")
+(date-spec :T3   "ddMMyyyyHHmmss")
+(date-spec :T4         "HH:mm:ss")
+(date-spec :T5           "HHmmss")
+(date-spec :D    "ddMMyyyy")
+(date-spec :RD   "yyyyMMdd")
+(date-spec :RD1    "ddMMyy")
+(date-spec :RD2  "yyyy-MM-dd")
+(date-spec :RD3  "yyyyDDD")
+;; TODO: SND (date-spec does not support SND)
 
-(defn- write-date [tag ^Date d]
-  (if d
-    (.format (SimpleDateFormat. (tag date-formats)) d)
-    (tag nil-date-strs)))
-
-(defn- read-date-str [tag ^String s]
-  (if (not= (tag nil-date-strs) s)
-    (.parse (SimpleDateFormat. (tag date-formats)) s)))
-
-;; java.util.Date as YYYYMMDDhhmmss (based on local time zone)
-(defmethod write-field-1 :T
-  [_ data]
-  (write-date :T data))
-
-(defmethod read-field-1 :T
-  [_ ^String obj]
-  (read-date-str :T obj))
-
-(defmethod write-field-1 :T3
-  [_ data]
-  (write-date :T3 data))
-
-(defmethod read-field-1 :T3
-  [_ ^String obj]
-  (read-date-str :T3 obj))
 
 (defn write-field
   "Serializes obj according to layout spec"
@@ -133,10 +134,6 @@
         (ex-info "number != count" {:number rep :count (count obj)}))
       (write-field-1 fs obj))))
 
-(defn split-str [s len]
-  (if (seq s)
-    (lazy-seq (cons (subs s 0 len) (split-str (subs s len) len)))))
-
 (defn read-field
   "De-serializes string according to layout specs"
   [[tag sz rep label] s]
@@ -145,7 +142,7 @@
     (if (> rep 1)
       (let [rlen (* rep len)
             rs (subs s 0 rlen)]
-        {:read [label (mapv read-field-1 (repeat fs) (split-str rs len))]
+        {:read [label (mapv read-field-1 (repeat fs) (partition-string rs len))]
          :rest (subs s rlen)})
       {:read [label (read-field-1 fs (subs s 0 len))]
        :rest (subs s len)})
@@ -246,6 +243,7 @@
           (Instant/from %)
           (= jt-test-date %)))
 
+
   "  === UNIT TESTS ==="
   (write-field-1 [:A 5 "Test"] "")
   (write-field-1 [:A 5 "Test"] "ABC")
@@ -257,6 +255,16 @@
 
   (write-field-1 [:T 0 "Test"] test-date)
   (read-field-1 [:T 0 "Test"] *1)
+
+  (write-field-1 [:T3 0 "Test"] test-date)
+  (read-field-1 [:T3 0 "Test"] *1)
+
+  (write-field-1 [:D 0 "Test"] test-date)
+  (read-field-1 [:D 0 "Test"] *1)
+
+  (write-field-1 [:T 0 "Test"] nil)
+  (write-field-1 [:T3 0 "Test"] nil)
+  (write-field-1 [:D 0 "Test"] nil)
 
   (write-field-1 [:N 6 "Test"] 1234M)
   (read-field-1 [:N 6 "Test"] *1)
