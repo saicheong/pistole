@@ -24,15 +24,15 @@
   (require '[clojure.test.check :as tc])
   (tc/quick-check 50 date-format-prop)
 
-  (defn unit-test [f]
-    (let [d (java.util.Date.)
-          f1 [f "14" "O" "1" "Test"]
+  (defn unit-test [f d]
+    (let [f1 [f "14" "O" "1" "Test"]
           f2 [(keyword f) 14 1 "Test"]]
       (println "eclp: " (eclp-format f1 d))
       (println "COO2: " (write-field f2 d))
       (= (eclp-format f1 d) (write-field f2 d))))
 
-  (unit-test "SND")
+  (unit-test "SND" (java.util.Date.))
+  (unit-test "SND" nil)
 
   (def fmt eclp-format)
 
@@ -43,7 +43,9 @@
 
   (fmt ["T","14","O", "1", "RqstTimeStampBefore"] nil)
   (fmt ["T","14","O", "1", "RqstTimeStampBefore"] (java.util.Date.))
+
   (fmt ["SND","9","O", "1", "RqstTimeStampBefore"] (java.util.Date.))
+  (fmt ["SND","9","O", "1", "RqstTimeStampBefore"] nil)
 
   (fmt ["AN", "5", "R", "1", "BlockMsgNo"] "123")
   (fmt ["AN", "5", "R", "1", "BlockMsgNo"] "")

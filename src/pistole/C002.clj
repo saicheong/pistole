@@ -111,6 +111,7 @@
            (if (not= nil-repr# s#)
              (.parse (SimpleDateFormat. ~fmt-str) s#))))))
 
+(def RD3-fmt "yyyyDDD")
 (date-spec :T    "yyyyMMddHHmmss")
 (date-spec :T2    "yyyyDDDHHmmss")
 (date-spec :T3   "ddMMyyyyHHmmss")
@@ -120,9 +121,20 @@
 (date-spec :RD   "yyyyMMdd")
 (date-spec :RD1    "ddMMyy")
 (date-spec :RD2  "yyyy-MM-dd")
-(date-spec :RD3  "yyyyDDD")
-;; TODO: SND (date-spec does not support SND)
+(date-spec :RD3  RD3-fmt)
 
+;; date-spec does not support :SND
+(defmethod write-field-1 :SND
+  [[_ sz] ^Date d]
+  {:pre [(> sz 7)]}
+  (let [sf (if d (.format (SimpleDateFormat. RD3-fmt) d) "")]
+    (str "+" (left-pad sf \0 (dec sz)))))
+
+(defmethod read-field-1 :SND
+  [[_ sz] ^String s]
+  (let [nil-rep (str "+" (left-pad "" \0 (dec sz)))]
+    (if (not= nil-rep s)
+      (.parse (SimpleDateFormat. RD3-fmt) (subs s (- sz 7))))))
 
 (defn write-field
   "Serializes obj according to layout spec"
