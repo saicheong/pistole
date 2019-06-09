@@ -37,9 +37,26 @@
   (def fmt eclp-format)
 
   (fmt ["A" "6" "O" "1" "MsgToken"] "ABC")
+
+  (fmt ["AN" "6" "O" "1" "MsgToken"] "ABC")
+  (fmt ["AN" "6" "O" "1" "MsgToken"] 123M)
+  (write-field [:AN 6 1 "MsgToken"] "ABC")
+  (write-field [:AN 6 1 "MsgToken"] 123M)
+
   (fmt ["N" "6" "O" "1" "MsgToken"] 1234M)
+  (fmt ["N" "6.2" "O" "1" "MsgToken"] 12.34M)
   (fmt ["N" "6.2" "O" "1" "MsgToken"] 100.236M)
   (fmt ["N" "6.2" "O" "1" "MsgToken"] nil)
+
+  ;; not supported by fmt
+  (fmt ["N" "6.2" "O" "3" "MsgToken"] [100.236M 123.12M 20.23M])
+  (fmt ["N" "6.2" "O" "1" "MsgToken"] -100.236M)
+
+  (write-field [:N [6 2] 1 "MsgToken"] 12.34M)
+  (write-field [:N [6 2] 3 "MsgToken"] [100.236M 123.12M 20.23M])
+
+  (fmt ["SN" "6.2" "O" "1" "MsgToken"] 100.236M)
+  (fmt ["SN" "6.2" "O" "1" "MsgToken"] -100.236M)
 
   (fmt ["T","14","O", "1", "RqstTimeStampBefore"] nil)
   (fmt ["T","14","O", "1", "RqstTimeStampBefore"] (java.util.Date.))

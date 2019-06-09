@@ -8,7 +8,7 @@
   (:require [clojure.string :as str])
   (:import (java.util Date Calendar)
            (java.text SimpleDateFormat)
-           (java.math BigDecimal BigInteger)))
+           (java.math BigDecimal)))
 
 (comment "=== Notes ==="
 
@@ -16,7 +16,13 @@
 
   "This is a port of UFormatter although UFormatter could also
    be used directly - it has dependencies into other codes that
-   is not desirable"
+   is not desirable
+
+   Changes from UFormatter:
+   :N - add validation against negative inputs
+   :N - add support for repetitions
+
+   "
 
   "Future:
    * adding functions for fixed-length file processing"
@@ -28,6 +34,7 @@
   (apply str (repeat cnt c)))
 
 (defn- ^String left-pad [^String s pad sz]
+  {:pre [(>= sz (count s))]}
   (str (apply str (repeat (- sz (count s)) pad))
        s))
 
@@ -69,36 +76,59 @@
   [[_ sz] ^String obj]
   (left-trim (subs obj 0 sz) \0))
 
+(defn- to-string [sc ^BigDecimal obj]
+  (if obj
+    (-> obj
+        (.setScale sc BigDecimal/ROUND_HALF_UP)
+        (.movePointRight sc)
+        (.toBigInteger)
+        (.toString))
+    "0"))
+
+(defn- to-number [sc ^String s]
+  (let [n (BigDecimal. s)]
+    (if (> sc 0) (.movePointLeft n sc) n)))
+
 (defmethod write-field-1 :N
   [[_ sz] ^BigDecimal obj]
+  {:pre [(>= obj 0)]}
   (let [[pr sc] (if (vector? sz) sz [sz 0])
-        n (if obj
-            (-> obj
-                (.setScale sc BigDecimal/ROUND_HALF_UP)
-                (.movePointRight sc)
-                (.toBigInteger))
-            BigInteger/ZERO)
-        fmt (str "%0" pr "d")]
-    (format fmt n)))
+        n (to-string sc obj)]
+    (left-pad n \0 pr)))
 
 (defmethod read-field-1 :N
   [[_ sz] ^String s]
-  (let [n (BigDecimal. s)]
-    (if (vector? sz)
-      (.movePointLeft n (second sz))
-      n)))
+  (let [[_ sc] (if (vector? sz) sz [sz 0])]
+    (to-number sc s)))
 
-(defmethod write-field-1 :B
-  [[_ sz] ^Boolean b]
-  {:pre [(= 1 sz)]}
-  (if b "Y" "N"))
+(defmethod write-field-1 :SN
+  [[_ sz] ^BigDecimal obj]
+  (let [[pr sc] (if (vector? sz) sz [sz 0])
+        n (to-string sc (.abs obj))]
+    (str (if (>= obj 0) \+ \-)
+         (left-pad n \0 (dec pr)))))
 
-(defmethod read-field-1 :B
+(defmethod read-field-1 :SN
   [[_ sz] ^String s]
-  {:pre [(= 1 sz)]}
-  (if (= "Y" (subs s 0 1)) true false))
+  (let [[_ sc] (if (vector? sz) sz [sz 0])
+        n (to-number sc (subs s 1))]
+    (if (= (.charAt s 0) \-) (* -1 n) n)))
 
+(def RD3-fmt "yyyyDDD")
 
+(defmethod write-field-1 :SND
+  [[_ sz] ^Date d]
+  {:pre [(> sz 7)]}
+  (let [sf (if d (.format (SimpleDateFormat. RD3-fmt) d) "")]
+    (str "+" (left-pad sf \0 (dec sz)))))
+
+(defmethod read-field-1 :SND
+  [[_ sz] ^String s]
+  (let [nil-rep (str "+" (left-pad "" \0 (dec sz)))]
+    (if (not= nil-rep s)
+      (.parse (SimpleDateFormat. RD3-fmt) (subs s (- sz 7))))))
+
+;; Note: date-spec does not support :SND
 (defmacro date-spec [tag fmt-str]
   `(let [nil-repr# (fill \0 (count ~fmt-str))]
      (do (defmethod write-field-1 ~tag
@@ -111,30 +141,27 @@
            (if (not= nil-repr# s#)
              (.parse (SimpleDateFormat. ~fmt-str) s#))))))
 
-(def RD3-fmt "yyyyDDD")
+(date-spec :D    "ddMMyyyy")
 (date-spec :T    "yyyyMMddHHmmss")
 (date-spec :T2    "yyyyDDDHHmmss")
 (date-spec :T3   "ddMMyyyyHHmmss")
 (date-spec :T4         "HH:mm:ss")
 (date-spec :T5           "HHmmss")
-(date-spec :D    "ddMMyyyy")
 (date-spec :RD   "yyyyMMdd")
 (date-spec :RD1    "ddMMyy")
 (date-spec :RD2  "yyyy-MM-dd")
 (date-spec :RD3  RD3-fmt)
 
-;; date-spec does not support :SND
-(defmethod write-field-1 :SND
-  [[_ sz] ^Date d]
-  {:pre [(> sz 7)]}
-  (let [sf (if d (.format (SimpleDateFormat. RD3-fmt) d) "")]
-    (str "+" (left-pad sf \0 (dec sz)))))
+(defmethod write-field-1 :B
+  [[_ sz] ^Boolean b]
+  {:pre [(= 1 sz)]}
+  (if b "Y" "N"))
 
-(defmethod read-field-1 :SND
+(defmethod read-field-1 :B
   [[_ sz] ^String s]
-  (let [nil-rep (str "+" (left-pad "" \0 (dec sz)))]
-    (if (not= nil-rep s)
-      (.parse (SimpleDateFormat. RD3-fmt) (subs s (- sz 7))))))
+  {:pre [(= 1 sz)]}
+  (if (= "Y" (subs s 0 1)) true false))
+
 
 (defn write-field
   "Serializes obj according to layout spec"
@@ -173,7 +200,7 @@
 
 (comment
 
-  (clojure.core/require 'pistole.C002)
+  (clojure.core/require 'pistole.C002 :reload)
 
   ; string
   (format "%6s" "abcd")
@@ -282,6 +309,16 @@
   (read-field-1 [:N 6 "Test"] *1)
   (write-field-1 [:N [6 2] "test"] 100.236M)
   (read-field-1 [:N [6 2] "Test"] *1)
+  (write-field-1 [:N [6 2] "test"] -100.236M)
+
+  (write-field-1 [:SN 6 "Test"] 1234M)
+  (read-field-1 [:SN 6 "Test"] *1)
+  (write-field-1 [:SN 6 "Test"] -123M)
+  (read-field-1 [:SN 6 "Test"] *1)
+  (write-field-1 [:SN [6 1] "Test"] 123.4M)
+  (read-field-1 [:SN [6 1] "Test"] *1)
+  (write-field-1 [:SN [6 1] "Test"] -12.3M)
+  (read-field-1 [:SN [6 1] "Test"] *1)
 
   (write-field-1 [:N 6 "Test"] nil)
   (write-field-1 [:N [6 2] "test"] nil)
